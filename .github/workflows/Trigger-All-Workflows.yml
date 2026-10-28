@@ -52,14 +52,15 @@ concurrency:
 jobs:
 
     IPQ60XX-LibWrt:
-      if: ${{ github.event_name == 'schedule' || inputs.ipq60xx_libwrt }}
+      # 仅手动勾选时运行（定时构建只跑亚瑟与 M2）
+      if: ${{ inputs.ipq60xx_libwrt }}
       uses: ./.github/workflows/IPQ60XX-LibWrt.yml
       permissions:
         contents: write
         actions: write
 
     IPQ807X-LibWrt:
-      if: ${{ github.event_name == 'schedule' || inputs.ipq807x_libwrt }}
+      if: ${{ inputs.ipq807x_libwrt }}
       uses: ./.github/workflows/IPQ807X-LibWrt.yml
       permissions:
         contents: write
@@ -73,7 +74,7 @@ jobs:
         actions: write
 
     JDCloud-NoWiFi-ImmortalWrt:
-      if: ${{ github.event_name == 'schedule' || inputs.jdcloud_nowifi_immortalwrt }}
+      if: ${{ inputs.jdcloud_nowifi_immortalwrt }}
       uses: ./.github/workflows/JDCloud-NoWiFi-ImmortalWrt.yml
       permissions:
         contents: write
@@ -87,14 +88,14 @@ jobs:
         actions: write
 
     x86-64-ImmortalWrt:
-      if: ${{ github.event_name == 'schedule' || inputs.x86_64_immortalwrt }}
+      if: ${{ inputs.x86_64_immortalwrt }}
       uses: ./.github/workflows/x86-64-ImmortalWrt.yml
       permissions:
         contents: write
         actions: write
 
     Build-Packages:
-      if: ${{ github.event_name == 'schedule' || inputs.build_packages }}
+      if: ${{ inputs.build_packages }}
       uses: ./.github/workflows/Build-Packages.yml
       permissions:
         contents: write
