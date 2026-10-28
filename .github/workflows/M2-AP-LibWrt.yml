@@ -1,0 +1,32 @@
+name: M2-AP-LibWrt
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  # schedule:
+  #   - cron: "0 18 * * *"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  Build:
+    uses: ./.github/workflows/Build-OpenWrt.yml
+    permissions:
+      contents: write
+      actions: write
+    with:
+      repo_url: https://github.com/laipeng668/openwrt-6.x.git
+      repo_branch: 25.12-nss
+      config_file: configs/M2.config
+      general_config_file: configs/M2.General.config
+      firmware_tag: M2
+      kernel_file: kernel-6.12
+      artifact_prefix: ZN-M2.AP
+      manifest_file: libwrt-qualcommax-ipq60xx.manifest
+      delete_old_workflows: true
+      release_summary: >-
+        这是兆能M2（ZN-M2，IPQ6000/256MB/AX1800）纯无线AP极简固件：NSS加速完整保留（q6_region保持默认）；ath11k 256MB小内存档；仅保留极简LuCI（无线配置/状态/系统）；
+        负包剔除dnsmasq、odhcpd、firewall4、ppp等路由组件；内核关闭kallsyms；zram防OOM；首次启动自动初始化为AP模式
+        （管理地址192.168.2.2，网关/DNS指向主路由192.168.2.1），详见M2.config和M2.General.config。

@@ -22,6 +22,11 @@ on:
         description: 运行 JDCloud-NoWiFi-ImmortalWrt
         required: false
         type: boolean
+        default: false
+      m2_ap_libwrt:
+        description: 运行 M2-AP-LibWrt
+        required: false
+        type: boolean
         default: true
       x86_64_immortalwrt:
         description: 运行 x86-64-ImmortalWrt
@@ -70,6 +75,13 @@ jobs:
     JDCloud-NoWiFi-ImmortalWrt:
       if: ${{ github.event_name == 'schedule' || inputs.jdcloud_nowifi_immortalwrt }}
       uses: ./.github/workflows/JDCloud-NoWiFi-ImmortalWrt.yml
+      permissions:
+        contents: write
+        actions: write
+
+    M2-AP-LibWrt:
+      if: ${{ github.event_name == 'schedule' || inputs.m2_ap_libwrt }}
+      uses: ./.github/workflows/M2-AP-LibWrt.yml
       permissions:
         contents: write
         actions: write

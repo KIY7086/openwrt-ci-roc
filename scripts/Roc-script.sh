@@ -336,5 +336,108 @@ fi
 # 清理 PassWall 的 chnlist 规则文件
 # echo "baidu.com"  > package/luci-app-passwall/luci-app-passwall/root/usr/share/passwall/rules/chnlist
 
+### Nikki (mihomo) ###
+
+if package_enabled luci-app-nikki nikki mihomo mihomo-meta; then
+  # Nikki feed：透明代理（mihomo 内核由 feed 内的 mihomo-meta 从源码编译，PROVIDES mihomo）
+  # 依赖 ca-bundle curl yq firewall4 ip-full kmod-inet-diag kmod-nft-socket kmod-nft-tproxy kmod-tun kmod-dummy
+  echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> feeds.conf.default
+fi
+
+### 兆能 M2 (zn_m2) 纯 AP 模式定制 ###
+
+zn_m2_enabled() {
+  awk '
+    { sub(/\r$/, "") }
+    $0 == "CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_zn_m2=y" { enabled = 1 }
+    END { exit(enabled ? 0 : 1) }
+  ' "${CONFIG_FILES[@]}"
+}
+
+if zn_m2_enabled; then
+  # 首次启动自动初始化为 AP 模式（管理地址 192.168.2.2，网关/DNS 指向主路由 192.168.2.1）
+  mkdir -p files/etc/uci-defaults
+  cat > files/etc/uci-defaults/99_zn_m2_ap <<'UCIDEFAULTS'
+#!/bin/sh
+# 兆能 M2 纯 AP 模式：LAN 静态地址 + 关闭 WAN 拨号 + 本机不提供 DHCP/IPv6RA
+uci -q batch <<-EOT
+	set network.lan.proto='static'
+	set network.lan.ipaddr='192.168.2.2'
+	set network.lan.netmask='255.255.255.0'
+	set network.lan.gateway='192.168.2.1'
+	set network.lan.dns='192.168.2.1'
+	set network.wan.proto='none'
+	set dhcp.lan.ignore='1'
+	set system.@system[0].hostname='M2-AP'
+	set system.@system[0].zonename='Asia/Shanghai'
+	set system.@system[0].timezone='CST-8'
+	commit network
+	commit dhcp
+	commit system
+EOT
+uci -q delete network.wan6
+uci -q commit network
+exit 0
+UCIDEFAULTS
+  chmod +x files/etc/uci-defaults/99_zn_m2_ap
+
+  # NSS 加速完整保留，q6_region 保持源码默认（55MB），不做压缩，稳妥优先
+fi
+
+### 京东云亚瑟 (jdcloud_re-ss-01) 64G eMMC 大存储定制 ###
+
+jdcloud_re_ss_01_enabled() {
+  config_symbol_enabled "CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_jdcloud_re-ss-01"
+}
+
+if jdcloud_re_ss_01_enabled; then
+  # 亚瑟是 eMMC 启动设备：rootfs 分区 4GiB（CONFIG_TARGET_ROOTFS_PARTSIZE），
+  # 剩余 ~60G 空间在首次启动时自动建成 ext4 数据分区并挂载到 /mnt/data，
+  # 同时把 /opt 指向数据分区，应用可放心存大文件
+  mkdir -p files/etc/uci-defaults
+  cat > files/etc/uci-defaults/99_jdcloud_emmc_data <<'UCIDEFAULTS'
+#!/bin/sh
+# 京东云亚瑟：64G eMMC 剩余空间自动建数据分区（rootfs 4GiB 之外的部分）
+DISK="/dev/mmcblk0"
+DATA_PART="${DISK}p3"
+MNT="/mnt/data"
+
+[ -b "$DISK" ] || exit 0
+command -v parted >/dev/null 2>&1 || exit 0
+command -v block >/dev/null 2>&1 || exit 0
+
+# 已配置过（sysupgrade 保留设置的场景）则不再重复
+grep -qs "mmcblk0p3" /etc/config/fstab && exit 0
+
+# 找到现有最后一个分区的结束字节（忽略 free 空闲行）
+LAST_END="$(parted -ms "$DISK" unit B print free 2>/dev/null | awk -F: '$1 ~ /^[0-9]+$/ && $5 !~ /^free;/ {last=$3} END{print last}')"
+LAST_END="${LAST_END%B}"
+DISK_SIZE="$(blockdev --getsize64 "$DISK" 2>/dev/null)"
+[ -n "$LAST_END" ] && [ -n "$DISK_SIZE" ] || exit 0
+
+# 剩余空间超过 1GiB 才建数据分区
+if [ "$((DISK_SIZE - LAST_END))" -gt 1073741824 ]; then
+  # 已有 ext4 文件系统则跳过格式化（保留数据）
+  if ! block info "$DATA_PART" 2>/dev/null | grep -q 'TYPE="ext4"'; then
+    parted -s "$DISK" mkpart data ext4 "${LAST_END}B" 100% >/dev/null 2>&1 || exit 0
+    mkfs.ext4 -F -L data -m 0 "$DATA_PART" >/dev/null 2>&1 || exit 0
+  fi
+  mkdir -p "$MNT"
+  uci add fstab mount >/dev/null 2>&1
+  uci set fstab.@mount[-1].target="$MNT"
+  uci set fstab.@mount[-1].device="$DATA_PART"
+  uci set fstab.@mount[-1].fstype='ext4'
+  uci set fstab.@mount[-1].options='rw,noatime'
+  uci set fstab.@mount[-1].enabled='1'
+  uci commit fstab
+  mount "$DATA_PART" "$MNT" 2>/dev/null
+  mkdir -p "$MNT/downloads" "$MNT/opt" "$MNT/docker"
+  ln -sfn "$MNT/opt" /opt
+fi
+exit 0
+UCIDEFAULTS
+  chmod +x files/etc/uci-defaults/99_jdcloud_emmc_data
+fi
+
 ./scripts/feeds update -i -a
 ./scripts/feeds install -a
