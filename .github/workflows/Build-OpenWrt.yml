@@ -314,7 +314,22 @@ jobs:
         cd "$OPENWRT_PATH"/bin/targets/*/*
         cp "$OPENWRT_PATH/.config" "$ARTIFACT_PREFIX.config"
         mv config.buildinfo "$ARTIFACT_PREFIX.config.buildinfo"
-        mv "$MANIFEST_FILE" "$ARTIFACT_PREFIX.manifest"
+        # 单设备构建时 manifest 会带 PROFILE_SANITIZED 设备名后缀（源码 include/image.mk：
+        # 文件名为 IMG_PREFIX[-PROFILE_SANITIZED].manifest），多设备构建才是无后缀的聚合名。
+        # 精确名不存在时回退到目录内实际存在的 manifest；即使一个都没有也只告警不失败，
+        # 绝不让数小时编译因这个信息性文件而前功尽弃
+        manifest_source="$MANIFEST_FILE"
+        if [ ! -f "$manifest_source" ]; then
+          manifest_source="$(find . -maxdepth 1 -type f -name '*.manifest' -print -quit)"
+          if [ -n "$manifest_source" ]; then
+            echo "::warning::Manifest '$MANIFEST_FILE' not found; using '$manifest_source' instead."
+          fi
+        fi
+        if [ -f "$manifest_source" ]; then
+          mv "$manifest_source" "$ARTIFACT_PREFIX.manifest"
+        else
+          echo "::warning::No manifest file found in '$PWD'; skip manifest artifact (firmware is unaffected)."
+        fi
         case "$PACKAGE_EXTENSION" in
           apk | ipk) ;;
           *)
