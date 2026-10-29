@@ -379,9 +379,9 @@ EOT
 uci -q delete network.wan6
 uci -q commit network
 
-# 无线：LibWrt 出厂 radio 默认关闭，这里自动开启并预配 SSID/密码/802.11r
-# 默认 SSID: M2-AP（双频同名，方便漫游），密码: 12345678（刷机后请自行修改）
-# 漫游域 1a2b 需与亚瑟侧配置一致
+# 无线：LibWrt 出厂 radio 默认关闭，这里仅做通用初始化——开启 radio + 统一 SSID/密码
+# 默认 SSID: M2-AP（双频同名），密码: 12345678（刷机后请自行修改）
+# 802.11r 快速漫游等个性化配置不在此预配，需要时在 LuCI 无线高级设置中开启
 /sbin/wifi config 2>/dev/null || true
 uci -q set wireless.radio0.disabled='0'
 uci -q set wireless.radio0.country='CN'
@@ -392,10 +392,6 @@ while uci -q get wireless.@wifi-iface[$i] >/dev/null 2>&1; do
 	uci set wireless.@wifi-iface[$i].ssid='M2-AP'
 	uci set wireless.@wifi-iface[$i].encryption='psk2'
 	uci set wireless.@wifi-iface[$i].key='12345678'
-	uci set wireless.@wifi-iface[$i].ieee80211r='1'
-	uci set wireless.@wifi-iface[$i].ft_over_ds='1'
-	uci set wireless.@wifi-iface[$i].mobility_domain='1a2b'
-	uci set wireless.@wifi-iface[$i].ft_psk_generate_local='1'
 	i=$((i+1))
 done
 uci -q commit wireless

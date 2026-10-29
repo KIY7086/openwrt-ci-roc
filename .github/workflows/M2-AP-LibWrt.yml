@@ -31,4 +31,4 @@ jobs:
         这是兆能M2（ZN-M2，IPQ6000/256MB/AX1800）无线AP固件：NSS加速完整保留（q6_region保持默认）；完整版wpad支持802.11r快速漫游；
         ath11k 256MB小内存档；内核关闭kallsyms；zram防OOM；保留dnsmasq/firewall4等路由基础组件保证稳定；
         首次启动自动初始化为AP模式：管理地址192.168.2.2（网关/DNS指向主路由192.168.2.1），
-        无线自动开启（SSID=M2-AP，双频同名，密码=12345678，漫游域1a2b），详见M2.config和M2.General.config。
+        无线自动开启（SSID=M2-AP，双频同名，密码=12345678；802.11r等按需在LuCI配置），详见M2.config和M2.General.config。
