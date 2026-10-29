@@ -28,7 +28,7 @@ jobs:
       manifest_file: libwrt-qualcommax-ipq60xx-zn_m2.manifest
       delete_old_workflows: true
       release_summary: >-
-        这是兆能M2（ZN-M2，IPQ6000/256MB/AX1800）无线AP固件：NSS加速完整保留（q6_region保持默认）；完整版wpad支持802.11r快速漫游；
-        ath11k 256MB小内存档；内核关闭kallsyms；zram防OOM；保留dnsmasq/firewall4等路由基础组件保证稳定；
-        首次启动自动初始化为AP模式：管理地址192.168.2.2（网关/DNS指向主路由192.168.2.1），
-        无线自动开启（SSID=M2-AP，双频同名，密码=12345678；802.11r等按需在LuCI配置），详见M2.config和M2.General.config。
+        这是兆能M2（ZN-M2，IPQ6000/256MB/AX1800）精简固件：仅精简固件本身（ath11k 256MB小内存档、
+        关闭kallsyms、zram防OOM、完整版wpad支持802.11r），NSS加速完整保留；
+        无任何内置定制，出厂默认行为（默认地址192.168.2.1，DHCP/无线等均为默认，无线radio出厂关闭，
+        首次使用在LuCI中启用），ath11k全套无线驱动已内置，详见M2.config和M2.General.config。
