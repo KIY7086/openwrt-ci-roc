@@ -360,6 +360,7 @@ if zn_m2_enabled; then
   cat > files/etc/uci-defaults/99_zn_m2_ap <<'UCIDEFAULTS'
 #!/bin/sh
 # 兆能 M2 纯 AP 模式：LAN 静态地址 + 关闭 WAN 拨号 + 本机不提供 DHCP/IPv6RA
+# 网段依据：主路由京东云亚瑟 LAN = 192.168.2.1
 uci -q batch <<-EOT
 	set network.lan.proto='static'
 	set network.lan.ipaddr='192.168.2.2'
@@ -377,6 +378,27 @@ uci -q batch <<-EOT
 EOT
 uci -q delete network.wan6
 uci -q commit network
+
+# 无线：LibWrt 出厂 radio 默认关闭，这里自动开启并预配 SSID/密码/802.11r
+# 默认 SSID: M2-AP（双频同名，方便漫游），密码: 12345678（刷机后请自行修改）
+# 漫游域 1a2b 需与亚瑟侧配置一致
+/sbin/wifi config 2>/dev/null || true
+uci -q set wireless.radio0.disabled='0'
+uci -q set wireless.radio0.country='CN'
+uci -q set wireless.radio1.disabled='0'
+uci -q set wireless.radio1.country='CN'
+i=0
+while uci -q get wireless.@wifi-iface[$i] >/dev/null 2>&1; do
+	uci set wireless.@wifi-iface[$i].ssid='M2-AP'
+	uci set wireless.@wifi-iface[$i].encryption='psk2'
+	uci set wireless.@wifi-iface[$i].key='12345678'
+	uci set wireless.@wifi-iface[$i].ieee80211r='1'
+	uci set wireless.@wifi-iface[$i].ft_over_ds='1'
+	uci set wireless.@wifi-iface[$i].mobility_domain='1a2b'
+	uci set wireless.@wifi-iface[$i].ft_psk_generate_local='1'
+	i=$((i+1))
+done
+uci -q commit wireless
 exit 0
 UCIDEFAULTS
   chmod +x files/etc/uci-defaults/99_zn_m2_ap
